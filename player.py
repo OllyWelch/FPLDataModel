@@ -14,10 +14,7 @@ class Player:
             "kickoff_time":None,"team_h_score":None,"team_a_score":None,"round":None,"minutes":None,
             "goals_scored":None,"assists":None,"clean_sheets":None,"goals_conceded":0,
             "own_goals":0,"penalties_saved":0,"penalties_missed":0,"yellow_cards":1,"red_cards":0,
-            "saves":0,"bonus":0,"bps":23,"influence":"9.8","creativity":"26.4","threat":"4.0","ict_index":"4.0",
-            "value":50,"transfers_balance":0,"selected":240975,"transfers_in":0,"transfers_out":0}
+            "saves":0,"bonus":0,"bps":0,"influence":"0","creativity":"0","threat":"0","ict_index":"0",
+            "value":0,"transfers_balance":0,"selected":0,"transfers_in":0,"transfers_out":0}
             for key in self.history.keys():
                 self.history[key] = None
-
-if __name__ == "__main__":
-    print(Player(566).history)

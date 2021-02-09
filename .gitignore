@@ -4,7 +4,5 @@ venv
 .env
 todo
 FPLWorkspace.code-workspace
-MySQLdb
-sqlalchemy
-pymysql
 *.dist-info
+*.zip

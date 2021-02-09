@@ -1,6 +1,8 @@
 from data_collection import data_collection
 from get_player_info import get_player_info
-from modelling import modelling
+import pymysql
+
+pymysql.install_as_MySQLdb()
 
 def handler(event, context):
     # Get database Uri from Lambda event
@@ -11,9 +13,6 @@ def handler(event, context):
 
     # Do player info collection
     get_player_info(db_uri=db_uri)
-
-    # Do modelling
-    modelling(db_uri=db_uri)
 
     return {
         'status_code': 200,

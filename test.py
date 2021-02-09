@@ -3,17 +3,15 @@ from get_player_info import get_player_info
 from modelling import modelling
 
 def handler(event, context):
-    # Get database Uri from Lambda event
-    db_uri = event['DB_URI']
 
     # Do the data collection step
-    data_collection(db_uri=db_uri)
+    data_collection()
 
     # Do player info collection
-    get_player_info(db_uri=db_uri)
+    get_player_info()
 
     # Do modelling
-    modelling(db_uri=db_uri)
+    modelling()
 
     return {
         'status_code': 200,
@@ -21,7 +19,4 @@ def handler(event, context):
     }
 
 if __name__ == "__main__":
-    event = {
-        'DB_URI': 'mysql://OllyWelch:W3lch088!?!@fpldb.cxaptffihhkq.eu-west-2.rds.amazonaws.com:3306/fpldb'
-    }
-    handler(event, None)
+    handler(None, None)

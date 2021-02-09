@@ -5,14 +5,12 @@ import pymysql
 pymysql.install_as_MySQLdb()
 
 def handler(event, context):
-    # Get database Uri from Lambda event
-    db_uri = event['DB_URI']
 
     # Do the data collection step
-    data_collection(db_uri=db_uri)
+    data_collection()
 
     # Do player info collection
-    get_player_info(db_uri=db_uri)
+    get_player_info()
 
     return {
         'status_code': 200,

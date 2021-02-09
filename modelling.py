@@ -9,9 +9,8 @@ from sklearn.ensemble import RandomForestRegressor
 from sklearn.metrics import mean_squared_error
 from sklearn.pipeline import Pipeline
 
-def modelling(gridsearch=False):
+def modelling(db_uri=os.environ.get('DB_URI'), gridsearch=False):
     # Connect to the database
-    db_uri = os.environ.get('DB_URI')
     engine = db.create_engine(db_uri)
 
     # Retrieve the features, response, and player_info tables from the database

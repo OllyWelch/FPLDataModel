@@ -1,7 +1,6 @@
 import requests
 import json
 import pandas as pd
-from tqdm import tqdm
 from datetime import datetime
 from player import Player
 import sqlalchemy as db
@@ -31,7 +30,7 @@ def get_feature_data(player_list):
     player_data = []
 
     # For each player:
-    for player in tqdm(player_list):
+    for player in player_list:
         # create a class instance for player specific data
         player_cls = Player(player['id'])
         # make an empty row

@@ -9,7 +9,13 @@ def get_player_info():
     bootstrap_request = requests.get("https://fantasy.premierleague.com/api/bootstrap-static/")
     request_json = bootstrap_request.json()
 
-    players = pd.read_json(json.dumps(request_json["elements"]))[['id', 'first_name', 'second_name']]
+    players = pd.read_json(json.dumps(request_json["elements"]))[['id', 'first_name', 
+    'second_name', 'team', 'now_cost']]
+    teams = pd.read_json(json.dumps(request_json["teams"]))[['id', 'name', 'short_name']]
+    teams = teams.rename(columns={'id': 'team', 'name': 'team_name', 'short_name': 'team_short_name'})
+    teams = teams.set_index('team')
+    players = players.join(teams, on='team', how='inner')
+    players['now_cost'] = players['now_cost'] / 10
     players.set_index('id', inplace=True)
 
     db_uri = os.environ.get('DB_URI') + '?charset=utf8'

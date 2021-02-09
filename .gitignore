@@ -5,4 +5,6 @@ venv
 todo
 FPLWorkspace.code-workspace
 MySQLdb
+sqlalchemy
+pymysql
 *.dist-info

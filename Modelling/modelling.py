@@ -117,4 +117,4 @@ def modelling(db_uri=os.environ.get('DB_URI'), gridsearch=False):
 
 
 if __name__ == "__main__":
-    modelling(gridsearch=True)
+    modelling(gridsearch=False)

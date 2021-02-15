@@ -2,14 +2,13 @@ import sqlalchemy as db
 import pandas as pd
 import numpy as np
 import os
-from pre_scaler import PreScaler
+from CustomRegressor import CustomRegressor
 from sklearn.preprocessing import StandardScaler
 from sklearn.model_selection import train_test_split, GridSearchCV
-from sklearn.ensemble import RandomForestRegressor
 from sklearn.metrics import mean_squared_error
 from sklearn.pipeline import Pipeline
 
-def modelling(db_uri=os.environ.get('DB_URI'), gridsearch=False):
+def modelling(db_uri=os.environ.get('DB_URI')):
     # Connect to the database
     engine = db.create_engine(db_uri)
 
@@ -32,67 +31,41 @@ def modelling(db_uri=os.environ.get('DB_URI'), gridsearch=False):
     # Split into train and test sets of features and response
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.1, random_state=0)
 
-    if gridsearch:
+    # DATA PIPELINE:
+    pipe = Pipeline([
+        ('scaler', StandardScaler()),
+        ('regressor', CustomRegressor())
+    ])
 
-        # DATA PIPELINE:
-        pipe = Pipeline([
-            ('pre_scaler', PreScaler()),
-            ('scaler', StandardScaler()),
-            ('regressor', RandomForestRegressor(n_estimators=100, random_state=0))
-        ])
+    # Set parameters to gridsearch over
+    max_depth = np.arange(3, 7)
+    min_samples_leaf = np.arange(2, 11)
+    min_samples_split = np.arange(2, 8)
 
-        # Set parameters to gridsearch over
-        max_depth = [5, 10, 15]
-        min_samples_leaf = np.arange(5, 11)
-        min_samples_split = np.arange(5, 21, 5)
+    reg_params = [{'max_depth': md, 'min_samples_leaf': msl, 'min_samples_split': mss}
+    for md in max_depth for msl in min_samples_leaf for mss in min_samples_split]
 
-        param_grid = [{
-                'regressor__max_depth': max_depth,
-                'regressor__min_samples_leaf': min_samples_leaf,
-                'regressor__min_samples_split': min_samples_split,
-            }]
+    param_grid = [{
+            'regressor__reg_params': reg_params,
+        }]
 
-        # Fit the gridsearched model to the training data with 4-fold CV
-        grid = GridSearchCV(pipe, n_jobs=-1, param_grid=param_grid, cv=4, verbose=True)
-        grid.fit(X_train, y_train)
+    # Fit the gridsearched model to the training data with 4-fold CV
+    grid = GridSearchCV(pipe, n_jobs=-1, param_grid=param_grid, cv=4, verbose=True, scoring='r2')
+    grid.fit(X_train, y_train)
 
-        # Give best CV score, as well as training and test set performance with the gridsearched parameters
-        print('Best score obtained with params {}'.format(grid.best_params_))
-        print('Best CV score {}'.format(grid.best_score_))
-        print('Performance on training set {}'.format(grid.score(X_train, y_train)))
-        print('Performance on test set: {}'.format(grid.score(X_test, y_test)))
+    # Give best CV score, as well as training and test set performance with the gridsearched parameters
+    print('Best score obtained with params {}'.format(grid.best_params_))
+    print('Best CV score {}'.format(grid.best_score_))
+    print('Performance on training set {}'.format(grid.score(X_train, y_train)))
+    print('Performance on test set: {}'.format(grid.score(X_test, y_test)))
 
-        # Dump the chosen hyperparameters to the database for future use
-        params = grid.best_params_
-        param_df = pd.DataFrame(columns=['max_depth', 'min_samples_leaf', 'min_samples_split'])
-        param_df.loc[0] = params.values()
-        param_df.to_sql('hyperparameters', con=engine, if_exists='replace')
+    # Dump the chosen hyperparameters to the database for future use
+    params = grid.best_params_
+    param_df = pd.DataFrame(columns=['max_depth', 'min_samples_leaf', 'min_samples_split'])
+    param_df.loc[0] = params['regressor__reg_params'].values()
+    param_df.to_sql('hyperparameters', con=engine, if_exists='replace')
 
-        # Set the final model to be the gridsearched one
-        model = grid
-
-    else:
-        # Retrieve hyperparameters from the database
-        hyperparameters = pd.read_sql('SELECT * FROM hyperparameters', con=engine)
-
-        max_depth=hyperparameters.max_depth[0]
-        min_samples_leaf=hyperparameters.min_samples_leaf[0]
-        min_samples_split=hyperparameters.min_samples_split[0]
-
-        # DATA PIPELINE:
-        pipe = Pipeline([
-            ('pre_scaler', PreScaler()),
-            ('scaler', StandardScaler()),
-            ('regressor', RandomForestRegressor(n_estimators=100, max_depth=max_depth, min_samples_leaf=min_samples_leaf,
-            min_samples_split=min_samples_split, random_state=0))
-        ])
-
-        # Fit the pipeline to the whole dataset
-        pipe.fit(X, y)
-
-        # Set the unaltered pipeline to be the final model
-        model = pipe
-
+       
     # Now retrieve the data to predict
     new_df = features[features.timestamp == max(features.timestamp)].copy()
 
@@ -103,18 +76,11 @@ def modelling(db_uri=os.environ.get('DB_URI'), gridsearch=False):
     new_df.drop(columns=['timestamp', 'player_id'], inplace=True)
 
     # Make new predictions and add to a DF with the player_ids
-    new_predictions = model.predict(new_df)
+    new_predictions = grid.predict(new_df)
     prediction_df = pd.DataFrame({'player_id': player_ids, 'prediction': new_predictions}).sort_values(by='prediction', ascending=False).set_index('player_id')
-
-
-    # Dump the predictions to the database, only if not optimizing
-    if not gridsearch:
-        prediction_df.to_sql('predictions', con=engine, if_exists='replace')
-
-        print('Predictions successfully added to database.')
 
     print(prediction_df.head(10).join(player_info, on='player_id'))
 
 
 if __name__ == "__main__":
-    modelling(gridsearch=False)
+    modelling()

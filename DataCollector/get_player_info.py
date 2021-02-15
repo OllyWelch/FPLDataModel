@@ -12,7 +12,7 @@ def get_player_info(db_uri=os.environ.get('DB_URI')):
 
     # Extract player and team info from bootstrap request ready for consolidation
     players = pd.read_json(json.dumps(request_json["elements"]))[['id', 'first_name', 
-    'second_name', 'team', 'now_cost', 'element_type']]
+    'second_name', 'team', 'now_cost', 'element_type', 'status']]
     teams = pd.read_json(json.dumps(request_json["teams"]))[['id', 'name', 'short_name']]
 
     # Rename the columns of teams so it doesn't clash with any players columns

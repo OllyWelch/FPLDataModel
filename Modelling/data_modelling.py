@@ -2,7 +2,7 @@ import json
 import numpy as np
 from sklearn.preprocessing import StandardScaler
 from sklearn.pipeline import Pipeline
-from CustomRegressor import CustomRegressor
+from custom_regressor import CustomRegressor
 
 
 def handler(event, context):

@@ -1,8 +1,5 @@
 from data_collection import data_collection
 from get_player_info import get_player_info
-import pymysql
-
-pymysql.install_as_MySQLdb()
 
 def handler(event, context):
 

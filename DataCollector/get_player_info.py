@@ -4,7 +4,7 @@ import json
 import sqlalchemy as db
 import os
 
-def get_player_info(db_uri=os.environ.get('DB_URI')):
+def get_player_info(db_uri=os.environ.get('POSTGRES')):
     # Retrieve info from Bootstrap page
     print('Getting player info...')
     bootstrap_request = requests.get("https://fantasy.premierleague.com/api/bootstrap-static/")

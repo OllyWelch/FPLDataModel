@@ -65,7 +65,7 @@ def get_response_data(entry_player_mapping, player_data):
     return entry_player_mapping.join(player_data, on='id')['points_scored']
 
 
-def data_collection(db_uri=os.environ.get('DB_URI')):
+def data_collection(db_uri=os.environ.get('POSTGRES')):
     """
     First step is to request all the data from the bootstrap page of the API in order to collect general player and team data
     """

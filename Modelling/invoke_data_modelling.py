@@ -4,12 +4,9 @@ import boto3
 import pandas as pd
 import numpy as np
 import sqlalchemy as db
-import pymysql
-
-pymysql.install_as_MySQLdb()
 
 client = boto3.client('lambda')
-db_uri = os.environ.get('DB_URI')
+db_uri = os.environ.get('POSTGRES')
 
 def handler(event, context):
 

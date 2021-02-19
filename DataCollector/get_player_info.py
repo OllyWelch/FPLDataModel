@@ -43,8 +43,7 @@ def get_player_info(db_uri=os.environ.get('POSTGRES')):
     players.set_index('id', inplace=True)
 
     # Connect to DB with UTF8 encoding as a parameter
-    db_uri += '?charset=utf8'
-    engine = db.create_engine(db_uri)
+    engine = db.create_engine(db_uri, client_encoding='utf8')
 
     # Dump player info to DB
     players.to_sql('player_info', con=engine, if_exists='replace')

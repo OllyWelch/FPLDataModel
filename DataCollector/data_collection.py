@@ -1,5 +1,6 @@
 import requests
 import json
+import numpy as np
 import pandas as pd
 from datetime import datetime
 from player import Player
@@ -17,7 +18,7 @@ def get_feature_data(player_list):
     Creates a dataframe player_data with player data including form, next fixture opposition strength and 
     each players points per game
     """
-    print("\nGathering up to date player data...")
+    print("Gathering up to date player data...")
 
     # columns to be extracted from bootstrap
     bootstrap_columns = ["id","team", "ict_index", "chance_of_playing_this_round", "form", "points_per_game"]
@@ -49,8 +50,9 @@ def get_feature_data(player_list):
 
     # Add the matrix of data in player_data to a pandas dataframe with all the relevant columns, index is id
     player_data = pd.DataFrame(player_data, columns=bootstrap_columns+player_columns+fixture_columns).set_index('id')
-
-    print("\nPlayer data gathered!")
+    # map is_home to integer
+    player_data.is_home = player_data.is_home.astype('int')
+    print("Player data gathered!")
 
     return player_data
 
@@ -91,7 +93,7 @@ def data_collection(db_uri=os.environ.get('POSTGRES')):
 
     # is update needed?
 
-    print('\nChecking if current gameweek is finished...')
+    print('Checking if current gameweek is finished...')
 
     most_recent_update = list(engine.execute('SELECT MAX(TIMESTAMP) FROM features;'))[0][0]
     next_unfinished_gameweek_start_time = list(events[events.finished == False].loc[:, 'deadline_time'])[0].replace(tzinfo=None)
@@ -100,7 +102,7 @@ def data_collection(db_uri=os.environ.get('POSTGRES')):
     # if update needed
     if is_update_required:
 
-        print('\nCurrent gameweek is finished, proceeding to get updated data')
+        print('Current gameweek is finished, proceeding to get updated data')
 
         # get updated data
         new_data = get_feature_data(players)
@@ -114,21 +116,12 @@ def data_collection(db_uri=os.environ.get('POSTGRES')):
         # if it exists
         if does_next_gameweek_data_exist:
 
-            print("\nRemoving out of date data...")
+            print("Removing out of date data...")
 
             # delete most recent data
-            engine.execute('DELETE FROM features WHERE timestamp="{}";'.format(most_recent_update))
+            engine.execute('DELETE FROM features WHERE timestamp=(SELECT MAX(timestamp) FROM features);')
 
-            # get max entry id
-            try: 
-                auto_increment = list(engine.execute('SELECT MAX(entry_id) FROM features'))[0][0] + 1
-            except: 
-                auto_increment = 1
-
-            # reset auto increment to one more than the max entry id
-            engine.execute('ALTER TABLE features AUTO_INCREMENT={};'.format(auto_increment))
-
-            print("\nOut of date data removed.")
+            print("Out of date data removed.")
 
         else: 
             # if we haven't already collected the new data, we can get the response data
@@ -140,6 +133,7 @@ def data_collection(db_uri=os.environ.get('POSTGRES')):
             # dump response data to db
             response.to_sql('response', con=engine, if_exists='append')
 
+        print("Preparing to insert feature data to database...")
         # rename the columns to more friendly names
         column_dict = {
             'team': 'team_id',
@@ -149,10 +143,24 @@ def data_collection(db_uri=os.environ.get('POSTGRES')):
         }
         new_data = new_data.rename(columns=column_dict)
         new_data = new_data.rename_axis('player_id')
+        # get max entry id
+        try: 
+            auto_increment = list(engine.execute('SELECT MAX(entry_id) FROM features'))[0][0] + 1
+        except:
+            auto_increment = 1
+        # reset index and set to auto_increment, then rename index as entry id
+        new_data = new_data.reset_index()
+        new_data.index = np.arange(auto_increment, auto_increment + len(new_data))
+        new_data = new_data.rename_axis('entry_id')
+
+        # add timestamp to new_data
+        new_data['timestamp'] = datetime.now().replace(microsecond=0)
+
+        print("Feature data prepared, adding to database...")
         # dump data to features table within the database
         new_data.to_sql('features', con=engine, if_exists='append')
 
-        print('\nData successfully added to database.')
+        print('Data successfully added to database.')
 
     else: 
-        print('\nGameweek in progress, no update performed.')
+        print('Gameweek in progress, no update performed.')
